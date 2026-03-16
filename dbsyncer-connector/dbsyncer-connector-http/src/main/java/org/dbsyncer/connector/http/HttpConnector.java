@@ -10,6 +10,7 @@ import com.alibaba.fastjson2.JSONPath;
 import org.dbsyncer.common.model.OpenApiData;
 import org.dbsyncer.common.model.Result;
 import org.dbsyncer.common.util.CollectionUtils;
+import org.dbsyncer.common.util.JsonUtil;
 import org.dbsyncer.common.util.NumberUtil;
 import org.dbsyncer.common.util.StringUtil;
 import org.dbsyncer.connector.http.cdc.HttpQuartzListener;
@@ -134,6 +135,7 @@ public class HttpConnector implements ConnectorService<HttpConnectorInstance, Ht
         HttpResponse execute = builder.execute();
         String data = execute.getBody();
         if (StringUtil.isNotBlank(data)) {
+            data = decryptData(connectorInstance, context, data);
             Object rootObject = JSON.parse(data);
             if (rootObject != null) {
                 String extractTotal = sourceTable.getExtInfo().getProperty(HttpConstant.EXTRACT_TOTAL);
@@ -154,6 +156,7 @@ public class HttpConnector implements ConnectorService<HttpConnectorInstance, Ht
         HttpResponse execute = builder.execute();
         String data = execute.getBody();
         if (StringUtil.isNotBlank(data)) {
+            data = decryptData(connectorInstance, context, data);
             Object rootObject = JSON.parse(data);
             if (rootObject != null) {
                 String extractData = sourceTable.getExtInfo().getProperty(HttpConstant.EXTRACT_PATH);
@@ -179,7 +182,7 @@ public class HttpConnector implements ConnectorService<HttpConnectorInstance, Ht
         try {
             RequestBuilder builder = genRequestBuilder(connectorInstance, context.getTargetTable());
             // 解析请求体模板为 JSON 对象
-            Object dataObj = writeData(connectorInstance, context, data);
+            Object dataObj = encryptData(connectorInstance, context, data);
             builder.setBodyAsJsonString(JSON.toJSONString(dataObj));
             builder.execute();
             result.addSuccessData(data);
@@ -240,7 +243,16 @@ public class HttpConnector implements ConnectorService<HttpConnectorInstance, Ht
         return builder;
     }
 
-    private Object writeData(HttpConnectorInstance connectorInstance, PluginContext context, List<Map> data) {
+    private String decryptData(HttpConnectorInstance connectorInstance, BaseContext context, String data) {
+        if (connectorInstance.getConfig().isEnableEncrypt() && context.getRsaManager() != null && context.getRsaConfig() != null) {
+            OpenApiData openApiData = JsonUtil.jsonToObj(data, OpenApiData.class);
+            boolean publicNetwork = connectorInstance.getConfig().isPublicNetwork();
+            return context.getRsaManager().decrypt(context.getRsaConfig(), openApiData, publicNetwork);
+        }
+        return data;
+    }
+
+    private Object encryptData(HttpConnectorInstance connectorInstance, PluginContext context, List<Map> data) {
         if (connectorInstance.getConfig().isEnableEncrypt() && context.getRsaManager() != null && context.getRsaConfig() != null) {
             boolean publicNetwork = connectorInstance.getConfig().isPublicNetwork();
             return context.getRsaManager().encrypt(context.getRsaConfig(), data, publicNetwork);
