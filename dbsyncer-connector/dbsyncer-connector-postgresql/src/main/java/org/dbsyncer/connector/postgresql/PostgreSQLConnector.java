@@ -189,7 +189,7 @@ public final class PostgreSQLConnector extends AbstractDatabaseConnector {
         sql.append("INSERT INTO ").append(config.getSchema());
         sql.append(config.getDatabase().buildWithQuotation(config.getTableName()));
         sql.append("(").append(StringUtil.join(context.fieldNames, StringUtil.COMMA)).append(") ");
-        sql.append("VALUES (").append(StringUtil.join(context.valuePlaceholders, StringUtil.COMMA)).append(")");
+        sql.append("OVERRIDING SYSTEM VALUE VALUES (").append(StringUtil.join(context.valuePlaceholders, StringUtil.COMMA)).append(")");
     }
 
     /**
