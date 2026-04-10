@@ -269,6 +269,9 @@ public final class SqlServerConnector extends AbstractDatabaseConnector {
                 // 使用 STAsText() 获取 WKT 格式，同时包含 SRID 信息，格式：POINT (...) | 4326
                 fs.add(String.format("CAST([%s].STAsText() AS NVARCHAR(MAX)) + ' | ' + CAST([%s].STSrid AS NVARCHAR(10)) AS [%s]", field.getName(), field.getName(), field.getName()));
                 return true;
+            case "hierarchyid":
+                fs.add(String.format("CAST([%s].ToString() AS NVARCHAR(MAX)) AS [%s]", field.getName(), field.getName()));
+                return true;
             default:
                 break;
         }
@@ -284,6 +287,9 @@ public final class SqlServerConnector extends AbstractDatabaseConnector {
                 return true;
             case "geography":
                 fs.add("geography::STGeomFromText(NULLIF(NULLIF(?, ''), 'NULL'),?)");
+                return true;
+            case "hierarchyid":
+                fs.add("hierarchyid::Parse(NULLIF(NULLIF(?, ''), 'NULL'))");
                 return true;
             default:
                 break;
