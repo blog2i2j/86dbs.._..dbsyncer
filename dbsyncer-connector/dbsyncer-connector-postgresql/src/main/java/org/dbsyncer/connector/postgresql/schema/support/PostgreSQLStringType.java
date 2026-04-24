@@ -5,6 +5,7 @@ package org.dbsyncer.connector.postgresql.schema.support;
 
 import org.dbsyncer.common.util.UUIDUtil;
 import org.dbsyncer.connector.postgresql.PostgreSQLException;
+import org.dbsyncer.connector.postgresql.schema.PostgreSQLSchemaResolver;
 import org.dbsyncer.sdk.model.Field;
 import org.dbsyncer.sdk.schema.support.StringType;
 
@@ -88,7 +89,7 @@ public final class PostgreSQLStringType extends StringType {
     public Object getDefaultConvertedVal(Field field) {
         try {
             PGobject pgObject = new PGobject();
-            pgObject.setType(field.getTypeName());
+            pgObject.setType(PostgreSQLSchemaResolver.normalizeTypeName(field.getTypeName()));
             pgObject.setValue(null);
             return pgObject;
         } catch (SQLException e) {
@@ -98,8 +99,10 @@ public final class PostgreSQLStringType extends StringType {
 
     @Override
     protected Object convert(Object val, Field field) {
+        // 规范化类型名，处理带 schema 前缀（如 "public"."geometry"）的情况
+        String rawTypeName = PostgreSQLSchemaResolver.normalizeTypeName(field.getTypeName());
         // 将类型名转大写并替换空格为下划线，以匹配 TypeEnum
-        String enumName = field.getTypeName().toUpperCase().replace(" ", "_");
+        String enumName = rawTypeName.toUpperCase().replace(" ", "_");
         TypeEnum typeEnum = TypeEnum.valueOf(enumName);
         // BIT 类型需要特殊处理：支持 Integer、Boolean、Number、String 等多种输入
         if (typeEnum == TypeEnum.BIT) {
